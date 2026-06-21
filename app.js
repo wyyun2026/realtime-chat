@@ -5,8 +5,8 @@
 
 /* ============ 配置区 ============ */
 // 替换为你自己的 Supabase 项目 URL 和 publishable key
-const SUPABASE_URL   = 'https://YOUR_PROJECT.supabase.co';
-const SUPABASE_ANON  = 'YOUR_sb_publishable_KEY';
+const SUPABASE_URL   = 'https://ziqlqljdsubhhlnmazde.supabase.co';
+const SUPABASE_ANON  = 'sb_publishable_MIOJ9YOHi0ZPtFprL65IFg_JlzLj0wN';
 
 /* ============ 常量 ============ */
 const AVATAR_COLORS = [
