@@ -32,6 +32,9 @@ html, body {
   color: var(--text);
   background: var(--panel);
   overflow: hidden;
+  /* 防止移动端过度缩放 */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 .hidden { display: none !important; }
@@ -89,6 +92,7 @@ html, body {
   display: grid;
   grid-template-columns: 60px 240px 1fr;
   height: 100vh;
+  height: 100dvh; /* 移动端动态视口高度，处理键盘弹出 */
 }
 
 /* ---- 工作区栏 ---- */
@@ -360,9 +364,97 @@ html, body {
 }
 .rp-item:hover { background: rgba(255,255,255,.12); }
 
+/* ===================== 移动端汉堡菜单按钮 ===================== */
+.mobile-menu-btn {
+  display: none;
+  background: none; border: none; cursor: pointer;
+  color: var(--text); font-size: 22px; padding: 4px 8px;
+  align-items: center; justify-content: center;
+}
+
+/* 移动端遮罩 */
+.sidebar-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.5);
+  z-index: 199;
+}
+.sidebar-overlay.show { display: block; }
+
 /* ===================== 响应式 ===================== */
 @media (max-width: 768px) {
-  .app { grid-template-columns: 0 200px 1fr; }
-  .workspace-bar { display:none; }
-  .ch-desc { display:none; }
+  .app {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr;
+  }
+  .workspace-bar { display: none; }
+
+  /* 侧边栏改为抽屉式 */
+  .sidebar {
+    position: fixed;
+    left: 0; top: 0; bottom: 0;
+    width: 260px;
+    z-index: 200;
+    transform: translateX(-100%);
+    transition: transform .25s ease;
+    box-shadow: 2px 0 12px rgba(0,0,0,.3);
+  }
+  .sidebar.open { transform: translateX(0); }
+
+  /* 聊天主区全宽 */
+  .chat-main { width: 100%; }
+
+  /* 顶部栏加汉堡按钮 */
+  .chat-header { padding: 10px 12px; }
+  .mobile-menu-btn { display: flex; }
+  .ch-left { gap: 4px; }
+  .ch-desc { display: none; }
+  .ch-name { font-size: 15px; }
+
+  /* 消息区减小内边距 */
+  .msg-group { padding: 6px 12px; }
+  .msg-system { padding: 8px 12px; }
+
+  /* 输入框区域 - 确保可见 */
+  .composer { padding: 0 10px 8px; padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
+  .composer-inner { padding: 6px 8px; }
+  .message-input { font-size: 16px; } /* iOS 防止自动缩放 */
+  .send-btn { width: 38px; height: 38px; flex-shrink: 0; }
+  .emoji-btn { font-size: 20px; padding: 6px; }
+
+  /* 表情面板适配 */
+  .emoji-panel {
+    bottom: 60px; left: 10px; right: 10px;
+    width: auto;
+  }
+  .ep-grid { grid-template-columns: repeat(6, 1fr); }
+
+  /* 消息操作按钮 - 移动端始终显示 */
+  .msg-actions { display: flex; position: static; box-shadow: none; background: none; border: none; padding: 0; margin-top: 4px; }
+  .msg-action-btn { padding: 6px 8px; font-size: 18px; }
+
+  /* 增大触摸目标 */
+  .channel-item { padding: 10px 16px; min-height: 44px; }
+  .member-item { padding: 6px 16px; min-height: 36px; }
+
+  /* 打字指示器 */
+  .typing-indicator { padding: 0 12px; min-height: 20px; font-size: 12px; }
+
+  /* 登录模态框适配 */
+  .modal { width: 92%; padding: 28px 20px; }
+  .modal-logo { font-size: 40px; }
+  .modal h2 { font-size: 20px; }
+}
+
+/* 超小屏幕 */
+@media (max-width: 380px) {
+  .ch-members { display: none; }
+  .msg-avatar { width: 32px; height: 32px; font-size: 13px; }
+  .msg-content { font-size: 14px; }
+}
+
+/* 横屏模式 */
+@media (max-width: 768px) and (orientation: landscape) {
+  .sidebar { width: 220px; }
+  .composer { padding-bottom: 4px; }
 }

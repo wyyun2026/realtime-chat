@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Slack 风格群聊 · 匿名树洞</title>
   <link rel="stylesheet" href="style.css" />
   <!-- Supabase JS v2 (ESM CDN) -->
@@ -29,6 +29,9 @@
   <!-- ============ 主布局 ============ -->
   <div id="app" class="app hidden">
 
+    <!-- 移动端遮罩 -->
+    <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
     <!-- 左侧工作区栏 -->
     <aside class="workspace-bar">
       <div class="ws-logo">🚀</div>
@@ -36,7 +39,7 @@
     </aside>
 
     <!-- 频道列表 -->
-    <aside class="sidebar">
+    <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <span class="ws-title">实时聊天工作区</span>
         <span class="online-count" id="onlineCount">0 在线</span>
@@ -67,6 +70,7 @@
     <main class="chat-main">
       <header class="chat-header">
         <div class="ch-left">
+          <button class="mobile-menu-btn" id="mobileMenuBtn" title="菜单">☰</button>
           <span class="ch-hash" id="chHash">#</span>
           <span class="ch-name" id="chName">general</span>
           <span class="ch-desc" id="chDesc"></span>

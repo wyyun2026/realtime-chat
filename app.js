@@ -49,6 +49,9 @@ const dom = {
   colorSwatches: $('colorSwatches'),
   joinBtn:       $('joinBtn'),
   app:           $('app'),
+  sidebar:       $('sidebar'),
+  sidebarOverlay:$('sidebarOverlay'),
+  mobileMenuBtn: $('mobileMenuBtn'),
   channelList:   $('channelList'),
   memberList:    $('memberList'),
   onlineCount:   $('onlineCount'),
@@ -134,10 +137,33 @@ function bindEvents() {
     }
   });
 
+  // 移动端侧边栏开关
+  dom.mobileMenuBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dom.sidebar.classList.toggle('open');
+    dom.sidebarOverlay.classList.toggle('show');
+  });
+  dom.sidebarOverlay.addEventListener('click', () => {
+    dom.sidebar.classList.remove('open');
+    dom.sidebarOverlay.classList.remove('show');
+  });
+
   // 自动调整输入框高度
   dom.messageInput.addEventListener('input', () => {
     dom.messageInput.style.height = 'auto';
     dom.messageInput.style.height = Math.min(dom.messageInput.scrollHeight, 120) + 'px';
+  });
+
+  // 移动端：键盘弹出时滚动到底部
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', () => {
+      scrollToBottom();
+    });
+  }
+
+  // 输入框聚焦时确保可见（移动端键盘弹出）
+  dom.messageInput.addEventListener('focus', () => {
+    setTimeout(scrollToBottom, 300);
   });
 }
 
@@ -191,7 +217,12 @@ function renderChannelList() {
       <span class="ch-icon">${ch.type === 'treehole' ? '🌳' : '#'}</span>
       <span class="ch-label">${ch.name}</span>
     `;
-    li.addEventListener('click', () => selectChannel(ch));
+    li.addEventListener('click', () => {
+      selectChannel(ch);
+      // 移动端选频道后关闭侧边栏
+      dom.sidebar.classList.remove('open');
+      dom.sidebarOverlay.classList.remove('show');
+    });
     dom.channelList.appendChild(li);
   });
 }
@@ -289,6 +320,8 @@ function subscribeMessages(channelId) {
       (payload) => {
         const m = payload.new;
         m.reactions = {};
+        // 去重：避免重复渲染
+        if (state.messages.find(x => x.id === m.id)) return;
         state.messages.push(m);
         renderMessage(m, true);
         scrollToBottom();
@@ -303,7 +336,19 @@ function subscribeMessages(channelId) {
         state.messages = state.messages.filter(m => m.id !== id);
       }
     )
-    .subscribe();
+    .subscribe((status, err) => {
+      if (status === 'SUBSCRIBED') {
+        console.log('✅ 消息频道已连接');
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        console.warn('⚠️ 消息频道断开，3秒后自动重连...', err);
+        setTimeout(() => {
+          if (state.currentChannel?.id === channelId) {
+            console.log('重新订阅消息频道...');
+            subscribeMessages(channelId);
+          }
+        }, 3000);
+      }
+    });
 }
 
 /* ============================================================
@@ -604,14 +649,24 @@ function joinPresence() {
     .on('broadcast', { event: 'typing' }, (payload) => {
       handleIncomingTyping(payload);
     })
-    .subscribe(async (status) => {
-      if (status !== 'SUBSCRIBED') return;
-      await state.presenceChannel.track({
-        user_id: state.user.id,
-        name: state.user.name,
-        color: state.user.color,
-        online_at: new Date().toISOString(),
-      });
+    .subscribe(async (status, err) => {
+      if (status === 'SUBSCRIBED') {
+        console.log('✅ Presence 已连接');
+        await state.presenceChannel.track({
+          user_id: state.user.id,
+          name: state.user.name,
+          color: state.user.color,
+          online_at: new Date().toISOString(),
+        });
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        console.warn('⚠️ Presence 断开，5秒后自动重连...', err);
+        setTimeout(() => {
+          if (state.presenceChannel) {
+            console.log('重新连接 Presence...');
+            state.presenceChannel.subscribe();
+          }
+        }, 5000);
+      }
     });
 }
 
