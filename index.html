@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Slack 风格群聊 · 匿名树洞</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- Supabase JS v2 (ESM CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+</head>
+<body>
+
+  <!-- ============ 登录/设置昵称 模态框 ============ -->
+  <div id="loginModal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-logo">💬</div>
+      <h2>加入聊天</h2>
+      <p class="modal-sub">输入昵称，开始你的实时群聊之旅</p>
+      <input id="nicknameInput" type="text" placeholder="你的昵称" maxlength="20" autocomplete="off" />
+      <div class="color-picker" id="colorPicker">
+        <span class="cp-label">选个头像颜色</span>
+        <div class="cp-swatches" id="colorSwatches"></div>
+      </div>
+      <button id="joinBtn" class="btn-primary">进入聊天</button>
+      <p class="modal-hint">提示：数据通过 Supabase Realtime 实时同步，刷新页面历史消息不丢失。</p>
+    </div>
+  </div>
+
+  <!-- ============ 主布局 ============ -->
+  <div id="app" class="app hidden">
+
+    <!-- 左侧工作区栏 -->
+    <aside class="workspace-bar">
+      <div class="ws-logo">🚀</div>
+      <div class="ws-name">Realtime<br>Chat</div>
+    </aside>
+
+    <!-- 频道列表 -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <span class="ws-title">实时聊天工作区</span>
+        <span class="online-count" id="onlineCount">0 在线</span>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="section-label">频道</div>
+        <ul class="channel-list" id="channelList"></ul>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="section-label">在线成员</div>
+        <ul class="member-list" id="memberList"></ul>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="me" id="meInfo">
+          <div class="me-avatar" id="meAvatar">?</div>
+          <div class="me-info">
+            <div class="me-name" id="meName">—</div>
+            <div class="me-status">● 在线</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- 主聊天区 -->
+    <main class="chat-main">
+      <header class="chat-header">
+        <div class="ch-left">
+          <span class="ch-hash" id="chHash">#</span>
+          <span class="ch-name" id="chName">general</span>
+          <span class="ch-desc" id="chDesc"></span>
+        </div>
+        <div class="ch-right">
+          <span class="ch-members" id="chMembers">0 成员</span>
+        </div>
+      </header>
+
+      <div class="messages" id="messages"></div>
+
+      <div class="typing-indicator" id="typingIndicator"></div>
+
+      <footer class="composer">
+        <div class="composer-inner">
+          <button class="emoji-btn" id="emojiBtn" title="表情">😊</button>
+          <textarea
+            id="messageInput"
+            class="message-input"
+            placeholder="在 #general 发送消息…  (Enter 发送 / Shift+Enter 换行)"
+            rows="1"
+          ></textarea>
+          <button class="send-btn" id="sendBtn" title="发送">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M3 12L21 3L13 21L11 13L3 12Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="composer-hint" id="composerHint"></div>
+      </footer>
+    </main>
+  </div>
+
+  <!-- 表情选择浮层 -->
+  <div id="emojiPanel" class="emoji-panel hidden">
+    <div class="ep-grid" id="emojiGrid"></div>
+  </div>
+
+  <!-- 消息右键反应浮层 -->
+  <div id="reactionPicker" class="reaction-picker hidden">
+    <div class="rp-grid" id="reactionGrid"></div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
