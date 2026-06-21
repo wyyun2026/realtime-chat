@@ -62,6 +62,12 @@
             <div class="me-name" id="meName">—</div>
             <div class="me-status">● 在线</div>
           </div>
+          <button class="me-edit-btn" id="meEditBtn" title="编辑个人资料">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
         </div>
       </div>
     </aside>
@@ -112,6 +118,26 @@
   <!-- 消息右键反应浮层 -->
   <div id="reactionPicker" class="reaction-picker hidden">
     <div class="rp-grid" id="reactionGrid"></div>
+  </div>
+
+  <!-- 编辑个人资料模态框 -->
+  <div id="profileModal" class="modal-overlay hidden">
+    <div class="modal profile-modal">
+      <div class="modal-logo" id="profilePreview">💬</div>
+      <h2>编辑个人资料</h2>
+      <p class="modal-sub">修改昵称和头像颜色</p>
+
+      <label class="form-label">昵称</label>
+      <input type="text" id="profileNickname" class="form-input" maxlength="20" placeholder="输入新昵称" />
+
+      <label class="form-label">头像颜色</label>
+      <div class="color-swatches" id="profileColors"></div>
+
+      <div class="modal-actions">
+        <button class="btn-secondary" id="profileCancel">取消</button>
+        <button class="btn-primary" id="profileSave">保存</button>
+      </div>
+    </div>
   </div>
 
   <script src="app.js"></script>

@@ -71,6 +71,14 @@ const dom = {
   reactionGrid:  $('reactionGrid'),
   typingIndicator:$('typingIndicator'),
   composerHint:  $('composerHint'),
+  // 个人资料编辑
+  meEditBtn:     $('meEditBtn'),
+  profileModal:  $('profileModal'),
+  profileNickname:$('profileNickname'),
+  profileColors: $('profileColors'),
+  profilePreview:$('profilePreview'),
+  profileCancel: $('profileCancel'),
+  profileSave:   $('profileSave'),
 };
 
 /* ============================================================
@@ -165,6 +173,17 @@ function bindEvents() {
   dom.messageInput.addEventListener('focus', () => {
     setTimeout(scrollToBottom, 300);
   });
+
+  // 个人资料编辑
+  dom.meEditBtn.addEventListener('click', openProfileEditor);
+  dom.profileCancel.addEventListener('click', closeProfileEditor);
+  dom.profileSave.addEventListener('click', saveProfile);
+  dom.profileNickname.addEventListener('keydown', e => {
+    if (e.key === 'Enter') saveProfile();
+  });
+  dom.profileModal.addEventListener('click', (e) => {
+    if (e.target === dom.profileModal) closeProfileEditor();
+  });
 }
 
 function handleJoin() {
@@ -174,6 +193,102 @@ function handleJoin() {
   state.user.id   = 'u_' + Math.random().toString(36).slice(2, 10);
   localStorage.setItem('chat_user', JSON.stringify(state.user));
   enterApp();
+}
+
+/* ============================================================
+ *  个人资料编辑
+ * ============================================================ */
+let profileSelectedColor = null;
+
+function openProfileEditor() {
+  dom.profileNickname.value = state.user.name;
+  profileSelectedColor = state.user.color;
+
+  // 渲染颜色选择器
+  dom.profileColors.innerHTML = '';
+  AVATAR_COLORS.forEach(c => {
+    const sw = document.createElement('div');
+    sw.className = 'color-swatch' + (c === profileSelectedColor ? ' selected' : '');
+    sw.style.background = c;
+    sw.addEventListener('click', () => {
+      profileSelectedColor = c;
+      dom.profileColors.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+      sw.classList.add('selected');
+      updateProfilePreview();
+    });
+    dom.profileColors.appendChild(sw);
+  });
+
+  updateProfilePreview();
+  dom.profileModal.classList.remove('hidden');
+  setTimeout(() => dom.profileNickname.focus(), 100);
+}
+
+function updateProfilePreview() {
+  const name = dom.profileNickname.value.trim() || '?';
+  dom.profilePreview.textContent = name[0].toUpperCase();
+  dom.profilePreview.style.background = profileSelectedColor;
+}
+
+// 实时更新预览
+document.addEventListener('DOMContentLoaded', () => {
+  // 延迟绑定，确保 DOM 元素已存在
+  setTimeout(() => {
+    if (dom.profileNickname) {
+      dom.profileNickname.addEventListener('input', updateProfilePreview);
+    }
+  }, 500);
+});
+
+function closeProfileEditor() {
+  dom.profileModal.classList.add('hidden');
+}
+
+async function saveProfile() {
+  const newName = dom.profileNickname.value.trim();
+  if (!newName) {
+    dom.profileNickname.focus();
+    return;
+  }
+
+  const oldName = state.user.name;
+  const oldColor = state.user.color;
+  state.user.name = newName;
+  state.user.color = profileSelectedColor;
+  localStorage.setItem('chat_user', JSON.stringify(state.user));
+
+  // 更新侧边栏显示
+  dom.meAvatar.textContent = newName[0].toUpperCase();
+  dom.meAvatar.style.background = profileSelectedColor;
+  dom.meName.textContent = newName;
+
+  // 更新 Presence，让其他用户看到新名字
+  if (state.presenceChannel) {
+    await state.presenceChannel.track({
+      user_id: state.user.id,
+      name: state.user.name,
+      color: state.user.color,
+      online_at: new Date().toISOString(),
+    });
+  }
+
+  // 广播改名通知
+  if (state.presenceChannel && oldName !== newName) {
+    state.presenceChannel.send({
+      type: 'broadcast',
+      event: 'typing',
+      payload: {
+        user_id: state.user.id,
+        name: state.user.name,
+        color: state.user.color,
+        channel_id: state.currentChannel?.id,
+        system: true,
+        text: `${oldName} 已改名为 ${newName}`,
+      },
+    });
+  }
+
+  closeProfileEditor();
 }
 
 function enterApp() {
