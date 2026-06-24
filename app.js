@@ -613,7 +613,8 @@ function renderMessage(msg, animate) {
   const sameAuthor = state.lastAuthor === msg.user_id && !isAnon;
 
   const group = document.createElement('div');
-  group.className = 'msg-group' + (sameAuthor ? ' same-author' : '');
+  const isMe = msg.user_id === state.user.id && !isAnon;
+  group.className = 'msg-group' + (sameAuthor ? ' same-author' : '') + (isMe ? ' me' : '');
   group.dataset.id = msg.id;
 
   const avatar = document.createElement('div');
