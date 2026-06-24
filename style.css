@@ -132,6 +132,43 @@ html, body {
 .btn-primary:active { background: #0b8cc0; }
 .modal-hint { margin-top:16px; font-size:12px; color:var(--text-dim); line-height:1.5; }
 
+/* ===================== 密码房模态框 ===================== */
+.private-modal { width: 420px; text-align: left; padding: 32px 28px; }
+.private-modal .modal-logo { font-size: 40px; margin-bottom: 12px; }
+.private-modal h2 { text-align: center; }
+.private-modal .modal-sub { text-align: center; margin-bottom: 20px; }
+.private-tabs {
+  display: flex; gap: 0; margin-bottom: 20px;
+  background: var(--bg); border-radius: var(--radius); overflow: hidden;
+}
+.private-tab {
+  flex: 1; padding: 10px;
+  background: transparent; border: none;
+  color: var(--text-dim); font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: all .2s;
+}
+.private-tab.active {
+  background: var(--primary); color: #fff;
+}
+.private-tab:hover:not(.active) { background: rgba(0,0,0,.04); }
+.private-panel { animation: fadeInUp .2s ease; }
+.private-panel.hidden { display: none !important; }
+.private-modal .form-label { margin-top: 12px; }
+.private-modal .form-input { margin-bottom: 4px; }
+.form-hint {
+  font-size: 12px; color: var(--text-dim); margin-bottom: 16px;
+}
+.private-back {
+  width: 100%; margin-top: 16px;
+}
+.mode-private { border-color: rgba(250,81,81,.3); }
+.mode-private:hover { border-color: var(--danger); background: #ffebee; }
+
+/* 频道列表中的密码房标识 */
+.channel-item .ch-lock {
+  font-size: 12px; margin-left: auto; opacity: .6;
+}
+
 /* ===================== 个人资料编辑模态框 ===================== */
 .profile-modal { width: 400px; text-align: left; padding: 32px 28px; }
 .profile-modal .modal-logo {

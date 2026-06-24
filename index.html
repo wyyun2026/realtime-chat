@@ -33,6 +33,14 @@
             <div class="mode-desc">Supabase 实时同步，随时随地聊天</div>
           </div>
         </button>
+
+        <button class="mode-btn mode-private" id="modePrivateBtn">
+          <span class="mode-icon">🔒</span>
+          <div class="mode-info">
+            <div class="mode-title">密码房</div>
+            <div class="mode-desc">创建或加入带密码的私密聊天室</div>
+          </div>
+        </button>
       </div>
     </div>
   </div>
@@ -141,6 +149,41 @@
   <!-- 消息右键反应浮层 -->
   <div id="reactionPicker" class="reaction-picker hidden">
     <div class="rp-grid" id="reactionGrid"></div>
+  </div>
+
+  <!-- 密码房入口模态框 -->
+  <div id="privateModal" class="modal-overlay hidden">
+    <div class="modal private-modal">
+      <div class="modal-logo">🔒</div>
+      <h2>密码房</h2>
+      <p class="modal-sub">创建私密房间或输入房间密码加入</p>
+
+      <div class="private-tabs">
+        <button class="private-tab active" data-tab="join">加入房间</button>
+        <button class="private-tab" data-tab="create">创建房间</button>
+      </div>
+
+      <!-- 加入房间 -->
+      <div id="privateJoinPanel" class="private-panel">
+        <label class="form-label">房间密码</label>
+        <input type="text" id="privateJoinPassword" class="form-input" maxlength="20" placeholder="输入房间密码" autocomplete="off" />
+        <p class="form-hint">向房主索要密码后输入即可加入</p>
+        <button class="btn-primary" id="privateJoinBtn">加入房间</button>
+      </div>
+
+      <!-- 创建房间 -->
+      <div id="privateCreatePanel" class="private-panel hidden">
+        <label class="form-label">房间名称</label>
+        <input type="text" id="privateCreateName" class="form-input" maxlength="20" placeholder="例如：VIP包厢" autocomplete="off" />
+        <label class="form-label">房间密码</label>
+        <input type="text" id="privateCreatePassword" class="form-input" maxlength="20" placeholder="设置进入密码" autocomplete="off" />
+        <label class="form-label">房间描述（可选）</label>
+        <input type="text" id="privateCreateDesc" class="form-input" maxlength="50" placeholder="描述这个房间的用途" autocomplete="off" />
+        <button class="btn-primary" id="privateCreateBtn">创建房间</button>
+      </div>
+
+      <button class="btn-secondary private-back" id="privateBackBtn">返回</button>
+    </div>
   </div>
 
   <!-- 编辑个人资料模态框 -->

@@ -84,10 +84,24 @@ const dom = {
   profileSave:   $('profileSave'),
   // 局域网
   lanContainer:  $('lanContainer'),
+  // 密码房
+  modePrivateBtn:  $('modePrivateBtn'),
+  privateModal:    $('privateModal'),
+  privateJoinPanel: $('privateJoinPanel'),
+  privateCreatePanel: $('privateCreatePanel'),
+  privateJoinPassword: $('privateJoinPassword'),
+  privateCreateName:   $('privateCreateName'),
+  privateCreatePassword: $('privateCreatePassword'),
+  privateCreateDesc:   $('privateCreateDesc'),
+  privateJoinBtn:    $('privateJoinBtn'),
+  privateCreateBtn:  $('privateCreateBtn'),
+  privateBackBtn:    $('privateBackBtn'),
 };
 
 // 当前模式
 let currentMode = null;
+// 已解锁的密码房（本地存储）
+let unlockedPrivateRooms = new Set();
 
 /* ============================================================
  *  初始化
@@ -118,6 +132,9 @@ function bindModeEvents() {
     localStorage.setItem('chat_mode', 'cloud');
     initCloud();
   });
+  dom.modePrivateBtn.addEventListener('click', () => {
+    showPrivateModal();
+  });
 }
 
 function showModeSelector() {
@@ -126,6 +143,7 @@ function showModeSelector() {
   dom.loginModal.classList.add('hidden');
   dom.app.classList.add('hidden');
   dom.lanContainer.classList.add('hidden');
+  dom.privateModal.classList.add('hidden');
   currentMode = null;
   bindModeEvents();
 }
@@ -276,6 +294,13 @@ function handleJoin() {
     enterLanChat();
   } else {
     enterApp();
+    // 如果有待进入的密码房，自动选中
+    if (state.pendingPrivateChannel) {
+      setTimeout(() => {
+        selectChannel(state.pendingPrivateChannel);
+        state.pendingPrivateChannel = null;
+      }, 600);
+    }
   }
 }
 
@@ -410,13 +435,20 @@ function renderChannelList() {
   dom.channelList.innerHTML = '';
   state.channels.forEach(ch => {
     const li = document.createElement('li');
-    li.className = 'channel-item' + (ch.type === 'treehole' ? ' treehole' : '');
+    const isPrivate = ch.is_private;
+    const isLocked = isPrivate && !unlockedPrivateRooms.has(ch.id);
+    li.className = 'channel-item' + (ch.type === 'treehole' ? ' treehole' : '') + (isPrivate ? ' private' : '');
     li.dataset.id = ch.id;
     li.innerHTML = `
-      <span class="ch-icon">${ch.type === 'treehole' ? '🌳' : '#'}</span>
+      <span class="ch-icon">${ch.type === 'treehole' ? '🌳' : (isPrivate ? '🔒' : '#')}</span>
       <span class="ch-label">${ch.name}</span>
+      ${isPrivate ? '<span class="ch-lock">🔒</span>' : ''}
     `;
     li.addEventListener('click', () => {
+      if (isLocked) {
+        promptPrivatePassword(ch);
+        return;
+      }
       selectChannel(ch);
       // 移动端选频道后关闭侧边栏
       dom.sidebar.classList.remove('open');
@@ -990,6 +1022,199 @@ function escapeHtml(str) {
 }
 
 /* ============================================================
+ *  密码房功能
+ * ============================================================ */
+function showPrivateModal() {
+  dom.modeSelector.classList.add('hidden');
+  dom.privateModal.classList.remove('hidden');
+  dom.privateJoinPassword.value = '';
+  dom.privateCreateName.value = '';
+  dom.privateCreatePassword.value = '';
+  dom.privateCreateDesc.value = '';
+  switchPrivateTab('join');
+  bindPrivateEvents();
+}
+
+function bindPrivateEvents() {
+  // 标签切换
+  dom.privateModal.querySelectorAll('.private-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      switchPrivateTab(tab.dataset.tab);
+    });
+  });
+
+  // 加入房间
+  dom.privateJoinBtn.addEventListener('click', joinPrivateRoom);
+  dom.privateJoinPassword.addEventListener('keydown', e => {
+    if (e.key === 'Enter') joinPrivateRoom();
+  });
+
+  // 创建房间
+  dom.privateCreateBtn.addEventListener('click', createPrivateRoom);
+  dom.privateCreateName.addEventListener('keydown', e => {
+    if (e.key === 'Enter') dom.privateCreatePassword.focus();
+  });
+  dom.privateCreatePassword.addEventListener('keydown', e => {
+    if (e.key === 'Enter') createPrivateRoom();
+  });
+
+  // 返回
+  dom.privateBackBtn.addEventListener('click', () => {
+    dom.privateModal.classList.add('hidden');
+    showModeSelector();
+  });
+
+  // 点击遮罩关闭
+  dom.privateModal.addEventListener('click', (e) => {
+    if (e.target === dom.privateModal) {
+      dom.privateModal.classList.add('hidden');
+      showModeSelector();
+    }
+  });
+}
+
+function switchPrivateTab(tab) {
+  dom.privateModal.querySelectorAll('.private-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.tab === tab);
+  });
+  if (tab === 'join') {
+    dom.privateJoinPanel.classList.remove('hidden');
+    dom.privateCreatePanel.classList.add('hidden');
+    setTimeout(() => dom.privateJoinPassword.focus(), 100);
+  } else {
+    dom.privateJoinPanel.classList.add('hidden');
+    dom.privateCreatePanel.classList.remove('hidden');
+    setTimeout(() => dom.privateCreateName.focus(), 100);
+  }
+}
+
+async function joinPrivateRoom() {
+  const password = dom.privateJoinPassword.value.trim();
+  if (!password) { dom.privateJoinPassword.focus(); return; }
+
+  // 先初始化 Supabase
+  if (!state.supabase) {
+    state.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
+      realtime: { params: { eventsPerSecond: 10 } }
+    });
+  }
+
+  // 查找匹配密码的房间
+  const { data, error } = await state.supabase
+    .from('channels')
+    .select('*')
+    .eq('is_private', true)
+    .eq('password', password)
+    .single();
+
+  if (error || !data) {
+    alert('密码错误，未找到对应的房间');
+    dom.privateJoinPassword.focus();
+    return;
+  }
+
+  // 解锁该房间
+  unlockedPrivateRooms.add(data.id);
+  localStorage.setItem('unlocked_private_rooms', JSON.stringify([...unlockedPrivateRooms]));
+
+  dom.privateModal.classList.add('hidden');
+  currentMode = 'cloud';
+  localStorage.setItem('chat_mode', 'cloud');
+
+  // 进入云端聊天
+  renderEmojiGrid();
+  const saved = localStorage.getItem('chat_user');
+  if (saved) {
+    state.user = JSON.parse(saved);
+    enterApp();
+    // 加载频道后自动选中该房间
+    setTimeout(() => selectChannel(data), 500);
+  } else {
+    dom.loginModal.classList.remove('hidden');
+    // 登录后自动进入该房间
+    state.pendingPrivateChannel = data;
+  }
+}
+
+async function createPrivateRoom() {
+  const name = dom.privateCreateName.value.trim();
+  const password = dom.privateCreatePassword.value.trim();
+  const desc = dom.privateCreateDesc.value.trim();
+
+  if (!name) { dom.privateCreateName.focus(); return; }
+  if (!password) { dom.privateCreatePassword.focus(); return; }
+
+  // 先初始化 Supabase
+  if (!state.supabase) {
+    state.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
+      realtime: { params: { eventsPerSecond: 10 } }
+    });
+  }
+
+  const { data, error } = await state.supabase.from('channels').insert({
+    name: name,
+    type: 'private',
+    description: desc || '私密聊天室',
+    is_private: true,
+    password: password,
+  }).select().single();
+
+  if (error) {
+    alert('创建房间失败: ' + error.message);
+    return;
+  }
+
+  // 自动解锁
+  unlockedPrivateRooms.add(data.id);
+  localStorage.setItem('unlocked_private_rooms', JSON.stringify([...unlockedPrivateRooms]));
+
+  dom.privateModal.classList.add('hidden');
+  currentMode = 'cloud';
+  localStorage.setItem('chat_mode', 'cloud');
+
+  // 进入云端聊天
+  renderEmojiGrid();
+  const saved = localStorage.getItem('chat_user');
+  if (saved) {
+    state.user = JSON.parse(saved);
+    enterApp();
+    setTimeout(() => selectChannel(data), 500);
+  } else {
+    dom.loginModal.classList.remove('hidden');
+    state.pendingPrivateChannel = data;
+  }
+}
+
+function promptPrivatePassword(channel) {
+  const input = prompt(`「${channel.name}」需要密码才能进入：`, '');
+  if (input === null) return; // 用户取消
+  const password = input.trim();
+  if (!password) return;
+
+  if (password === channel.password) {
+    unlockedPrivateRooms.add(channel.id);
+    localStorage.setItem('unlocked_private_rooms', JSON.stringify([...unlockedPrivateRooms]));
+    selectChannel(channel);
+    renderChannelList(); // 重新渲染以更新锁图标
+  } else {
+    alert('密码错误');
+  }
+}
+
+// 加载已解锁的密码房
+function loadUnlockedRooms() {
+  try {
+    const saved = localStorage.getItem('unlocked_private_rooms');
+    if (saved) {
+      unlockedPrivateRooms = new Set(JSON.parse(saved));
+    }
+  } catch (e) { /* ignore */ }
+}
+
+/* ============================================================
  *  启动
  * ============================================================ */
-window.addEventListener('DOMContentLoaded', init);
+window.addEventListener('DOMContentLoaded', () => {
+  loadUnlockedRooms();
+  init();
+});
