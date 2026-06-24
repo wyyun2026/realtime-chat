@@ -44,6 +44,9 @@ const state = {
 /* ============ DOM 引用 ============ */
 const $ = (id) => document.getElementById(id);
 const dom = {
+  modeSelector:  $('modeSelector'),
+  modeLanBtn:    $('modeLanBtn'),
+  modeCloudBtn:  $('modeCloudBtn'),
   loginModal:    $('loginModal'),
   nicknameInput: $('nicknameInput'),
   colorSwatches: $('colorSwatches'),
@@ -79,12 +82,74 @@ const dom = {
   profilePreview:$('profilePreview'),
   profileCancel: $('profileCancel'),
   profileSave:   $('profileSave'),
+  // 局域网
+  lanContainer:  $('lanContainer'),
 };
+
+// 当前模式
+let currentMode = null;
 
 /* ============================================================
  *  初始化
  * ============================================================ */
 function init() {
+  // 检查是否有保存的模式偏好
+  const savedMode = localStorage.getItem('chat_mode');
+  if (savedMode === 'lan') {
+    showLanLogin();
+    return;
+  } else if (savedMode === 'cloud') {
+    initCloud();
+    return;
+  }
+
+  // 默认显示模式选择
+  bindModeEvents();
+}
+
+function bindModeEvents() {
+  dom.modeLanBtn.addEventListener('click', () => {
+    currentMode = 'lan';
+    localStorage.setItem('chat_mode', 'lan');
+    showLanLogin();
+  });
+  dom.modeCloudBtn.addEventListener('click', () => {
+    currentMode = 'cloud';
+    localStorage.setItem('chat_mode', 'cloud');
+    initCloud();
+  });
+}
+
+function showModeSelector() {
+  localStorage.removeItem('chat_mode');
+  dom.modeSelector.classList.remove('hidden');
+  dom.loginModal.classList.add('hidden');
+  dom.app.classList.add('hidden');
+  dom.lanContainer.classList.add('hidden');
+  currentMode = null;
+  bindModeEvents();
+}
+
+function showLanLogin() {
+  dom.modeSelector.classList.add('hidden');
+  dom.loginModal.classList.remove('hidden');
+  dom.loginModal.querySelector('h2').textContent = '加入台球室聊天';
+  dom.loginModal.querySelector('.modal-sub').textContent = '同一 WiFi 内实时聊天，无需联网';
+  dom.loginModal.querySelector('.modal-hint').textContent = '提示：局域网模式仅在同一 WiFi 内有效，消息不会上传到云端。';
+
+  renderColorPicker();
+  bindEvents();
+
+  // 检查是否已登录
+  const saved = localStorage.getItem('chat_user');
+  if (saved) {
+    state.user = JSON.parse(saved);
+    enterLanChat();
+  }
+}
+
+function initCloud() {
+  dom.modeSelector.classList.add('hidden');
   // 初始化 Supabase 客户端
   state.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
     realtime: { params: { eventsPerSecond: 10 } }
@@ -93,7 +158,7 @@ function init() {
   renderColorPicker();
   renderEmojiGrid();
 
-  // 检查是否已登录（localStorage）
+  // 检查是否已登录
   const saved = localStorage.getItem('chat_user');
   if (saved) {
     state.user = JSON.parse(saved);
@@ -103,6 +168,18 @@ function init() {
   }
 
   bindEvents();
+}
+
+function enterLanChat() {
+  dom.loginModal.classList.add('hidden');
+  dom.lanContainer.classList.remove('hidden');
+
+  // 同步用户信息到局域网状态
+  lanState.user.id = state.user.id || 'u_' + Math.random().toString(36).slice(2, 10);
+  lanState.user.name = state.user.name;
+  lanState.user.color = state.user.color;
+
+  initLanChat(dom.lanContainer);
 }
 
 /* ============================================================
@@ -190,9 +267,16 @@ function handleJoin() {
   const name = dom.nicknameInput.value.trim();
   if (!name) { dom.nicknameInput.focus(); return; }
   state.user.name = name;
-  state.user.id   = 'u_' + Math.random().toString(36).slice(2, 10);
+  if (!state.user.id) {
+    state.user.id = 'u_' + Math.random().toString(36).slice(2, 10);
+  }
   localStorage.setItem('chat_user', JSON.stringify(state.user));
-  enterApp();
+
+  if (currentMode === 'lan' || localStorage.getItem('chat_mode') === 'lan') {
+    enterLanChat();
+  } else {
+    enterApp();
+  }
 }
 
 /* ============================================================

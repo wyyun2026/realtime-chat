@@ -10,8 +10,35 @@
 </head>
 <body>
 
+  <!-- ============ 模式选择 ============ -->
+  <div id="modeSelector" class="mode-selector">
+    <div class="mode-card">
+      <div class="mode-logo">🎱</div>
+      <h1>选择聊天模式</h1>
+      <p class="mode-sub">台球室实时聊天系统</p>
+
+      <div class="mode-options">
+        <button class="mode-btn mode-lan" id="modeLanBtn">
+          <span class="mode-icon">📡</span>
+          <div class="mode-info">
+            <div class="mode-title">台球室局域网</div>
+            <div class="mode-desc">同一 WiFi 内免流量聊天，无需联网</div>
+          </div>
+        </button>
+
+        <button class="mode-btn mode-cloud" id="modeCloudBtn">
+          <span class="mode-icon">☁️</span>
+          <div class="mode-info">
+            <div class="mode-title">云端聊天室</div>
+            <div class="mode-desc">Supabase 实时同步，随时随地聊天</div>
+          </div>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- ============ 登录/设置昵称 模态框 ============ -->
-  <div id="loginModal" class="modal-overlay">
+  <div id="loginModal" class="modal-overlay hidden">
     <div class="modal">
       <div class="modal-logo">💬</div>
       <h2>加入聊天</h2>
@@ -87,7 +114,6 @@
       </header>
 
       <div class="messages" id="messages"></div>
-
       <div class="typing-indicator" id="typingIndicator"></div>
 
       <footer class="composer">
@@ -96,8 +122,8 @@
           <textarea
             id="messageInput"
             class="message-input"
-            placeholder="在 #general 发送消息…  (Enter 发送 / Shift+Enter 换行)"
             rows="1"
+            placeholder="在 #general 发送消息… (Enter 发送 / Shift+Enter 换行)"
           ></textarea>
           <button class="send-btn" id="sendBtn" title="发送">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -109,6 +135,9 @@
       </footer>
     </main>
   </div>
+
+  <!-- ============ 局域网聊天容器 ============ -->
+  <div id="lanContainer" class="lan-container hidden"></div>
 
   <!-- 表情选择浮层 -->
   <div id="emojiPanel" class="emoji-panel hidden">
@@ -141,5 +170,6 @@
   </div>
 
   <script src="app.js"></script>
+  <script src="lan-chat.js"></script>
 </body>
 </html>

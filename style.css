@@ -39,6 +39,50 @@ html, body {
 
 .hidden { display: none !important; }
 
+/* ===================== 模式选择 ===================== */
+.mode-selector {
+  position: fixed; inset: 0;
+  background: linear-gradient(135deg, #1a1d21 0%, #2d1b4e 100%);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 2000;
+}
+.mode-card {
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 48px 40px;
+  width: 420px;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0,0,0,.5);
+}
+.mode-logo { font-size: 56px; margin-bottom: 16px; }
+.mode-card h1 { color: var(--text-bright); font-size: 26px; margin-bottom: 6px; }
+.mode-sub { color: var(--text-dim); font-size: 14px; margin-bottom: 32px; }
+.mode-options { display: flex; flex-direction: column; gap: 12px; }
+.mode-btn {
+  display: flex; align-items: center; gap: 16px;
+  padding: 18px 20px;
+  background: var(--panel);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all .2s;
+  text-align: left;
+  width: 100%;
+}
+.mode-btn:hover {
+  border-color: var(--accent2);
+  background: rgba(138,43,226,.08);
+  transform: translateY(-1px);
+}
+.mode-icon { font-size: 32px; flex-shrink: 0; }
+.mode-title { color: var(--text-bright); font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+.mode-desc { color: var(--text-dim); font-size: 13px; }
+.mode-lan { border-color: rgba(46,182,125,.3); }
+.mode-lan:hover { border-color: #2eb67d; }
+.mode-cloud { border-color: rgba(54,197,240,.3); }
+.mode-cloud:hover { border-color: #36c5f0; }
+
 /* ===================== 登录模态框 ===================== */
 .modal-overlay {
   position: fixed; inset: 0;
@@ -506,4 +550,122 @@ html, body {
 @media (max-width: 768px) and (orientation: landscape) {
   .sidebar { width: 220px; }
   .composer { padding-bottom: 4px; }
+}
+
+/* ===================== 局域网聊天 ===================== */
+.lan-container {
+  position: fixed; inset: 0;
+  z-index: 100;
+  background: var(--panel);
+}
+.lan-chat {
+  display: flex; flex-direction: column;
+  height: 100vh; height: 100dvh;
+}
+.lan-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 20px;
+  background: var(--aubergine);
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  flex-shrink: 0;
+}
+.lan-title {
+  display: flex; align-items: center; gap: 12px;
+}
+.lan-icon { font-size: 28px; }
+.lan-name { font-size: 16px; font-weight: 700; color: var(--text-bright); }
+.lan-status { font-size: 12px; color: var(--online); margin-top: 2px; }
+.lan-exit-btn {
+  background: none; border: none; cursor: pointer;
+  color: var(--text-dim); font-size: 20px; padding: 6px 10px;
+  border-radius: 6px; transition: background .15s, color .15s;
+}
+.lan-exit-btn:hover { background: rgba(255,255,255,.1); color: var(--text-bright); }
+
+.lan-messages {
+  flex: 1; overflow-y: auto;
+  padding: 16px 20px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.lan-msg {
+  display: flex; gap: 10px;
+  animation: fadeInUp .25s ease;
+}
+.lan-msg.me { flex-direction: row-reverse; }
+.lan-msg-avatar {
+  width: 36px; height: 36px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; color: #fff; font-size: 14px;
+  flex-shrink: 0;
+}
+.lan-msg-body { max-width: 70%; }
+.lan-msg.me .lan-msg-body { text-align: right; }
+.lan-msg-meta { display: flex; align-items: baseline; gap: 8px; margin-bottom: 3px; }
+.lan-msg.me .lan-msg-meta { justify-content: flex-end; }
+.lan-msg-name { font-weight: 600; color: var(--text-bright); font-size: 14px; }
+.lan-msg-time { font-size: 11px; color: var(--text-dim); }
+.lan-msg-content {
+  background: var(--panel2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px 12px;
+  color: var(--text); font-size: 15px; line-height: 1.45;
+  word-wrap: break-word; white-space: pre-wrap;
+  text-align: left; display: inline-block;
+}
+.lan-msg.me .lan-msg-content {
+  background: var(--accent); border-color: var(--accent);
+  color: #fff;
+}
+
+.lan-typing {
+  min-height: 20px; padding: 0 20px;
+  font-size: 12px; color: var(--text-dim); font-style: italic;
+  flex-shrink: 0;
+}
+
+.lan-composer {
+  padding: 0 16px 12px;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  flex-shrink: 0;
+}
+.lan-composer-inner {
+  display: flex; align-items: flex-end; gap: 8px;
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+.lan-composer-inner:focus-within { border-color: var(--accent2); }
+.lan-emoji-btn {
+  background: none; border: none; cursor: pointer;
+  font-size: 22px; padding: 4px; opacity: .7;
+  transition: opacity .15s; flex-shrink: 0;
+}
+.lan-emoji-btn:hover { opacity: 1; }
+.lan-input {
+  flex: 1; background: none; border: none;
+  color: var(--text-bright); font-size: 15px;
+  font-family: var(--font); resize: none;
+  outline: none; max-height: 100px; line-height: 1.4;
+}
+.lan-input::placeholder { color: var(--text-dim); }
+.lan-send-btn {
+  background: var(--accent); border: none; border-radius: 8px;
+  width: 36px; height: 36px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; transition: background .2s; flex-shrink: 0;
+}
+.lan-send-btn:hover { background: var(--accent2); }
+
+/* 移动端局域网适配 */
+@media (max-width: 768px) {
+  .mode-card { width: 92%; padding: 32px 20px; }
+  .mode-logo { font-size: 44px; }
+  .mode-card h1 { font-size: 22px; }
+  .mode-btn { padding: 14px 16px; }
+  .mode-icon { font-size: 28px; }
+  .lan-header { padding: 10px 14px; }
+  .lan-messages { padding: 12px 14px; }
+  .lan-msg-body { max-width: 80%; }
+  .lan-composer { padding: 0 10px 8px; }
+  .lan-input { font-size: 16px; }
 }
