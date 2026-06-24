@@ -572,7 +572,11 @@ html, body {
 .lan-title {
   display: flex; align-items: center; gap: 12px;
 }
-.lan-icon { font-size: 28px; }
+.lan-icon-wrap {
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--accent2); flex-shrink: 0;
+}
 .lan-name { font-size: 16px; font-weight: 700; color: var(--text-bright); }
 .lan-status { font-size: 12px; color: var(--online); margin-top: 2px; }
 .lan-exit-btn {

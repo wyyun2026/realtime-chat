@@ -253,7 +253,13 @@ function initLanChat(container) {
     <div class="lan-chat">
       <header class="lan-header">
         <div class="lan-title">
-          <span class="lan-icon">🎱</span>
+          <div class="lan-icon-wrap">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/>
+              <path d="M2 12h20"/>
+            </svg>
+          </div>
           <div>
             <div class="lan-name">台球室聊天室</div>
             <div class="lan-status">● 局域网模式 · <span id="lanPeerCount">0</span> 人在线</div>
