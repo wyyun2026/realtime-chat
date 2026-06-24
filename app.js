@@ -480,7 +480,7 @@ async function loadMessages(channelId) {
     .select('*')
     .eq('channel_id', channelId)
     .order('created_at', { ascending: true })
-    .limit(200);
+    .limit(10);
   if (error) { console.error('加载消息失败:', error); return; }
 
   // 批量加载这些消息的反应
