@@ -102,6 +102,15 @@ const dom = {
   searchInput:     $('searchInput'),
   searchResults:   $('searchResults'),
   searchCloseBtn:  $('searchCloseBtn'),
+  // 房间管理
+  chSettingsBtn:   $('chSettingsBtn'),
+  announcementBar: $('announcementBar'),
+  announcementText:$('announcementText'),
+  roomSettingsModal: $('roomSettingsModal'),
+  roomAnnouncement:  $('roomAnnouncement'),
+  memberManageList:  $('memberManageList'),
+  roomSettingsCancel:$('roomSettingsCancel'),
+  roomSettingsSave:  $('roomSettingsSave'),
 };
 
 // 当前模式
@@ -110,6 +119,8 @@ let currentMode = null;
 let unlockedPrivateRooms = new Set();
 // 未读消息计数 { channelId: count }
 let unreadCounts = {};
+// 当前频道被禁言的用户列表
+let bannedUsers = new Set();
 
 /* ============================================================
  *  初始化
@@ -297,6 +308,14 @@ function bindEvents() {
   });
   dom.searchModal.addEventListener('click', (e) => {
     if (e.target === dom.searchModal) closeSearch();
+  });
+
+  // 房间设置
+  dom.chSettingsBtn.addEventListener('click', openRoomSettings);
+  dom.roomSettingsCancel.addEventListener('click', closeRoomSettings);
+  dom.roomSettingsSave.addEventListener('click', saveAnnouncement);
+  dom.roomSettingsModal.addEventListener('click', (e) => {
+    if (e.target === dom.roomSettingsModal) closeRoomSettings();
   });
 }
 
@@ -502,6 +521,21 @@ async function selectChannel(channel) {
   dom.chName.textContent  = channel.name;
   dom.chDesc.textContent  = channel.description || '';
   dom.messageInput.placeholder = `在 ${channel.type === 'treehole' ? '🌳' : '#'}${channel.name} 发送消息…  (Enter 发送 / Shift+Enter 换行)`;
+
+  // 显示/隐藏房间设置按钮
+  const isOwner = channel.owner_id === state.user.id;
+  dom.chSettingsBtn.classList.toggle('hidden', !isOwner);
+
+  // 显示公告
+  if (channel.announcement) {
+    dom.announcementText.textContent = channel.announcement;
+    dom.announcementBar.classList.remove('hidden');
+  } else {
+    dom.announcementBar.classList.add('hidden');
+  }
+
+  // 加载禁言列表
+  loadBannedUsers(channel.id);
 
   // 高亮频道
   document.querySelectorAll('.channel-item').forEach(el => {
@@ -899,6 +933,12 @@ async function sendMessage() {
   const text = dom.messageInput.value.trim();
   if (!text || !state.currentChannel) return;
 
+  // 检查是否被禁言
+  if (bannedUsers.has(state.user.id)) {
+    dom.composerHint.textContent = '⚠️ 你已被禁言，无法发送消息';
+    return;
+  }
+
   const isAnon = state.currentChannel.type === 'treehole';
 
   const payload = {
@@ -1144,6 +1184,128 @@ function updateTypingIndicator() {
       dom.typingIndicator.textContent = `${names.length} 人正在输入…`;
     }
   }
+}
+
+/* ============================================================
+ *  房间管理功能
+ * ============================================================ */
+async function loadBannedUsers(channelId) {
+  bannedUsers.clear();
+  const { data } = await state.supabase
+    .from('banned_users')
+    .select('user_id')
+    .eq('channel_id', channelId);
+  (data || []).forEach(r => bannedUsers.add(r.user_id));
+  checkBanned();
+}
+
+function checkBanned() {
+  const isBanned = bannedUsers.has(state.user.id);
+  dom.messageInput.disabled = isBanned;
+  dom.sendBtn.disabled = isBanned;
+  if (isBanned) {
+    dom.messageInput.placeholder = '你已被禁言，无法发送消息';
+    dom.composerHint.textContent = '⚠️ 你已被房主禁言';
+  } else {
+    dom.messageInput.placeholder = `在 ${state.currentChannel?.type === 'treehole' ? '🌳' : '#'}${state.currentChannel?.name || ''} 发送消息… (Enter 发送 / Shift+Enter 换行)`;
+    dom.composerHint.textContent = '';
+  }
+}
+
+function openRoomSettings() {
+  if (!state.currentChannel) return;
+  dom.roomSettingsModal.classList.remove('hidden');
+  dom.roomAnnouncement.value = state.currentChannel.announcement || '';
+  renderMemberManage();
+}
+
+function closeRoomSettings() {
+  dom.roomSettingsModal.classList.add('hidden');
+}
+
+async function saveAnnouncement() {
+  if (!state.currentChannel) return;
+  const text = dom.roomAnnouncement.value.trim();
+  const { error } = await state.supabase
+    .from('channels')
+    .update({ announcement: text })
+    .eq('id', state.currentChannel.id);
+  if (error) {
+    alert('保存失败: ' + error.message);
+    return;
+  }
+  state.currentChannel.announcement = text;
+  if (text) {
+    dom.announcementText.textContent = text;
+    dom.announcementBar.classList.remove('hidden');
+  } else {
+    dom.announcementBar.classList.add('hidden');
+  }
+  closeRoomSettings();
+}
+
+function renderMemberManage() {
+  dom.memberManageList.innerHTML = '';
+  const members = Object.values(state.members);
+  if (members.length === 0) {
+    dom.memberManageList.innerHTML = '<div class="member-manage-empty">暂无在线成员</div>';
+    return;
+  }
+  members.forEach(m => {
+    const isBanned = bannedUsers.has(m.user_id);
+    const item = document.createElement('div');
+    item.className = 'member-manage-item';
+    item.innerHTML = `
+      <div class="member-manage-name">
+        <div class="member-manage-avatar" style="background:${m.color}">${m.name[0].toUpperCase()}</div>
+        <span>${escapeHtml(m.name)}</span>
+      </div>
+      <div class="mm-actions">
+        ${isBanned
+          ? `<button class="mm-btn unban">解禁</button>`
+          : `<button class="mm-btn ban">禁言</button>`}
+      </div>
+    `;
+    const btn = item.querySelector('.mm-btn');
+    btn.addEventListener('click', () => {
+      if (isBanned) unbanUser(m.user_id);
+      else banUser(m.user_id);
+    });
+    dom.memberManageList.appendChild(item);
+  });
+}
+
+async function banUser(userId) {
+  if (!state.currentChannel) return;
+  const { error } = await state.supabase.from('banned_users').insert({
+    channel_id: state.currentChannel.id,
+    user_id: userId,
+    banned_by: state.user.id,
+  });
+  if (error) {
+    alert('禁言失败: ' + error.message);
+    return;
+  }
+  bannedUsers.add(userId);
+  renderMemberManage();
+  // 如果禁言的是自己
+  if (userId === state.user.id) checkBanned();
+}
+
+async function unbanUser(userId) {
+  if (!state.currentChannel) return;
+  const { error } = await state.supabase
+    .from('banned_users')
+    .delete()
+    .eq('channel_id', state.currentChannel.id)
+    .eq('user_id', userId);
+  if (error) {
+    alert('解禁失败: ' + error.message);
+    return;
+  }
+  bannedUsers.delete(userId);
+  renderMemberManage();
+  if (userId === state.user.id) checkBanned();
 }
 
 /* ============================================================
@@ -1408,12 +1570,18 @@ async function createPrivateRoom() {
     });
   }
 
+  // 确保用户ID存在
+  if (!state.user.id) {
+    state.user.id = 'u_' + Math.random().toString(36).slice(2, 10);
+  }
+
   const { data, error } = await state.supabase.from('channels').insert({
     name: name,
     type: 'private',
     description: desc || '私密聊天室',
     is_private: true,
     password: password,
+    owner_id: state.user.id,
   }).select().single();
 
   if (error) {

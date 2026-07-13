@@ -112,9 +112,16 @@
         </div>
         <div class="ch-right">
           <button class="ch-search-btn" id="chSearchBtn" title="搜索消息">🔍</button>
+          <button class="ch-settings-btn hidden" id="chSettingsBtn" title="房间设置">⚙️</button>
           <span class="ch-members" id="chMembers">0 成员</span>
         </div>
       </header>
+
+      <!-- 房间公告 -->
+      <div class="announcement-bar hidden" id="announcementBar">
+        <span class="ab-icon">📢</span>
+        <span class="ab-text" id="announcementText"></span>
+      </div>
 
       <div class="messages" id="messages"></div>
       <div class="typing-indicator" id="typingIndicator"></div>
@@ -195,6 +202,27 @@
       <input type="text" id="searchInput" class="form-input" placeholder="输入关键词搜索当前频道消息…" autocomplete="off" />
       <div class="search-results" id="searchResults"></div>
       <button class="btn-secondary" id="searchCloseBtn">关闭</button>
+    </div>
+  </div>
+
+  <!-- 房间设置模态框 -->
+  <div id="roomSettingsModal" class="modal-overlay hidden">
+    <div class="modal room-settings-modal">
+      <div class="modal-logo">⚙️</div>
+      <h2>房间设置</h2>
+
+      <label class="form-label">房间公告</label>
+      <textarea id="roomAnnouncement" class="form-input" rows="3" placeholder="设置房间公告，所有成员可见" style="resize:vertical;"></textarea>
+
+      <label class="form-label">在线成员管理</label>
+      <div class="member-manage-list" id="memberManageList">
+        <div class="member-manage-empty">加载中…</div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-secondary" id="roomSettingsCancel">取消</button>
+        <button class="btn-primary" id="roomSettingsSave">保存公告</button>
+      </div>
     </div>
   </div>
 
