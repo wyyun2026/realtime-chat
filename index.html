@@ -98,6 +98,10 @@
             </svg>
           </button>
         </div>
+        <button class="pool-manage-btn" id="poolManageBtn" title="台球室管理">
+          <span>🎱</span>
+          <span>台球室管理</span>
+        </button>
       </div>
     </aside>
 
@@ -226,6 +230,44 @@
     </div>
   </div>
 
+  <!-- 台球室管理模态框 -->
+  <div id="poolManagerModal" class="modal-overlay hidden">
+    <div class="modal pool-manager-modal">
+      <div class="modal-logo">🎱</div>
+      <h2>台球室管理</h2>
+
+      <div class="pool-tabs">
+        <button class="pool-tab active" data-tab="tables">台球桌</button>
+        <button class="pool-tab" data-tab="queue">排队</button>
+        <button class="pool-tab" data-tab="scores">积分</button>
+      </div>
+
+      <!-- 台球桌 -->
+      <div id="poolTablesPanel" class="pool-panel">
+        <div class="pool-tables-grid" id="poolTablesGrid"></div>
+      </div>
+
+      <!-- 排队 -->
+      <div id="poolQueuePanel" class="pool-panel hidden">
+        <div class="pool-queue-list" id="poolQueueList"></div>
+        <div class="pool-queue-actions">
+          <button class="btn-primary" id="poolJoinQueueBtn">我要排队</button>
+        </div>
+      </div>
+
+      <!-- 积分 -->
+      <div id="poolScoresPanel" class="pool-panel hidden">
+        <div class="my-score" id="myScoreDisplay">
+          <div class="ms-label">我的积分</div>
+          <div class="ms-value" id="myScoreValue">0</div>
+        </div>
+        <div class="score-leaderboard" id="scoreLeaderboard"></div>
+      </div>
+
+      <button class="btn-secondary pool-back" id="poolManagerClose">关闭</button>
+    </div>
+  </div>
+
   <!-- 编辑个人资料模态框 -->
   <div id="profileModal" class="modal-overlay hidden">
     <div class="modal profile-modal">
@@ -248,5 +290,6 @@
 
   <script src="app.js"></script>
   <script src="lan-chat.js"></script>
+  <script src="pool-manager.js"></script>
 </body>
 </html>

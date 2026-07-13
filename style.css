@@ -210,6 +210,87 @@ html, body {
 .btn-secondary:hover { background: var(--bg); color: var(--text); }
 .modal-actions .btn-primary { flex: 1; width: auto; }
 
+/* 台球室管理模态框 */
+.pool-manager-modal { width: 520px; text-align: left; padding: 28px 24px; }
+.pool-manager-modal .modal-logo { font-size: 36px; margin-bottom: 8px; }
+.pool-manager-modal h2 { text-align: center; margin-bottom: 16px; }
+.pool-tabs {
+  display: flex; gap: 0; margin-bottom: 20px;
+  background: var(--bg); border-radius: var(--radius); overflow: hidden;
+}
+.pool-tab {
+  flex: 1; padding: 10px;
+  background: transparent; border: none;
+  color: var(--text-dim); font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: all .2s;
+}
+.pool-tab.active { background: var(--primary); color: #fff; }
+.pool-tab:hover:not(.active) { background: rgba(0,0,0,.04); }
+.pool-panel { animation: fadeInUp .2s ease; }
+.pool-panel.hidden { display: none !important; }
+.pool-back { width: 100%; margin-top: 16px; }
+
+/* 台球桌网格 */
+.pool-tables-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
+}
+.pool-table-card {
+  background: #fff; border: 2px solid var(--border);
+  border-radius: 12px; padding: 16px;
+  text-align: center; transition: all .2s;
+}
+.pool-table-card.idle { border-color: var(--online); }
+.pool-table-card.occupied { border-color: var(--primary); background: var(--primary-light); }
+.pt-name { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.pt-status { font-size: 12px; color: var(--text-dim); margin-bottom: 8px; }
+.pt-timer { font-size: 24px; font-weight: 700; color: var(--primary); margin-bottom: 8px; }
+.pt-player { font-size: 13px; color: var(--text); margin-bottom: 8px; }
+.pt-btn {
+  padding: 6px 16px; border-radius: 6px;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  border: none; transition: background .2s;
+}
+.pt-btn.start { background: var(--online); color: #fff; }
+.pt-btn.start:hover { background: #43a047; }
+.pt-btn.end { background: var(--danger); color: #fff; }
+.pt-btn.end:hover { background: #e53935; }
+
+/* 排队列表 */
+.pool-queue-list { max-height: 300px; overflow-y: auto; }
+.pool-queue-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 12px; border-bottom: 1px solid var(--border);
+  font-size: 14px;
+}
+.pool-queue-item:hover { background: rgba(0,0,0,.02); }
+.pq-name { display: flex; align-items: center; gap: 8px; }
+.pq-avatar {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; color: #fff;
+}
+.pq-time { font-size: 12px; color: var(--text-dim); }
+.pq-cancel { background: none; border: none; cursor: pointer; font-size: 16px; color: var(--text-dim); }
+.pq-cancel:hover { color: var(--danger); }
+.pool-queue-actions { margin-top: 12px; }
+
+/* 积分 */
+.my-score {
+  text-align: center; padding: 16px;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  border-radius: 12px; color: #fff; margin-bottom: 16px;
+}
+.ms-label { font-size: 13px; opacity: .8; }
+.ms-value { font-size: 36px; font-weight: 700; }
+.score-leaderboard { max-height: 240px; overflow-y: auto; }
+.score-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 12px; border-bottom: 1px solid var(--border);
+}
+.score-rank { font-weight: 700; color: var(--primary); width: 24px; }
+.score-name { flex: 1; font-size: 14px; }
+.score-points { font-weight: 700; color: var(--text); }
+
 /* 房间设置模态框 */
 .room-settings-modal { width: 440px; text-align: left; padding: 28px 24px; }
 .room-settings-modal .modal-logo { font-size: 36px; margin-bottom: 8px; }
@@ -354,6 +435,20 @@ html, body {
   flex-shrink: 0;
 }
 .me-edit-btn:hover { opacity: 1; background: rgba(0,0,0,.06); color: var(--text); }
+
+/* 台球室管理入口 */
+.pool-manage-btn {
+  display: flex; align-items: center; gap: 8px;
+  margin-top: 10px; padding: 8px 12px;
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 13px; color: var(--text);
+  cursor: pointer; width: 100%;
+  transition: all .15s;
+}
+.pool-manage-btn:hover { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
+
+/* 频道未读红点 */
 
 /* ===================== 聊天主区 (QQ风格) ===================== */
 .chat-main {
