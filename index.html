@@ -111,6 +111,7 @@
           <span class="ch-desc" id="chDesc"></span>
         </div>
         <div class="ch-right">
+          <button class="ch-search-btn" id="chSearchBtn" title="搜索消息">🔍</button>
           <span class="ch-members" id="chMembers">0 成员</span>
         </div>
       </header>
@@ -183,6 +184,17 @@
       </div>
 
       <button class="btn-secondary private-back" id="privateBackBtn">返回</button>
+    </div>
+  </div>
+
+  <!-- 消息搜索模态框 -->
+  <div id="searchModal" class="modal-overlay hidden">
+    <div class="modal search-modal">
+      <div class="modal-logo">🔍</div>
+      <h2>搜索消息</h2>
+      <input type="text" id="searchInput" class="form-input" placeholder="输入关键词搜索当前频道消息…" autocomplete="off" />
+      <div class="search-results" id="searchResults"></div>
+      <button class="btn-secondary" id="searchCloseBtn">关闭</button>
     </div>
   </div>
 

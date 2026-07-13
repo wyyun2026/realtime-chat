@@ -96,12 +96,20 @@ const dom = {
   privateJoinBtn:    $('privateJoinBtn'),
   privateCreateBtn:  $('privateCreateBtn'),
   privateBackBtn:    $('privateBackBtn'),
+  // 搜索
+  chSearchBtn:     $('chSearchBtn'),
+  searchModal:     $('searchModal'),
+  searchInput:     $('searchInput'),
+  searchResults:   $('searchResults'),
+  searchCloseBtn:  $('searchCloseBtn'),
 };
 
 // 当前模式
 let currentMode = null;
 // 已解锁的密码房（本地存储）
 let unlockedPrivateRooms = new Set();
+// 未读消息计数 { channelId: count }
+let unreadCounts = {};
 
 /* ============================================================
  *  初始化
@@ -279,6 +287,17 @@ function bindEvents() {
   dom.profileModal.addEventListener('click', (e) => {
     if (e.target === dom.profileModal) closeProfileEditor();
   });
+
+  // 搜索
+  dom.chSearchBtn.addEventListener('click', openSearch);
+  dom.searchCloseBtn.addEventListener('click', closeSearch);
+  dom.searchInput.addEventListener('input', debounce(doSearch, 300));
+  dom.searchInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') doSearch();
+  });
+  dom.searchModal.addEventListener('click', (e) => {
+    if (e.target === dom.searchModal) closeSearch();
+  });
 }
 
 function handleJoin() {
@@ -437,12 +456,14 @@ function renderChannelList() {
     const li = document.createElement('li');
     const isPrivate = ch.is_private;
     const isLocked = isPrivate && !unlockedPrivateRooms.has(ch.id);
+    const unread = unreadCounts[ch.id] || 0;
     li.className = 'channel-item' + (ch.type === 'treehole' ? ' treehole' : '') + (isPrivate ? ' private' : '');
     li.dataset.id = ch.id;
     li.innerHTML = `
       <span class="ch-icon">${ch.type === 'treehole' ? '🌳' : (isPrivate ? '🔒' : '#')}</span>
       <span class="ch-label">${ch.name}</span>
-      ${isPrivate ? '<span class="ch-lock">🔒</span>' : ''}
+      ${unread > 0 ? `<span class="unread-badge">${unread > 99 ? '99+' : unread}</span>` : ''}
+      ${isPrivate && !unread ? '<span class="ch-lock">🔒</span>' : ''}
     `;
     li.addEventListener('click', () => {
       if (isLocked) {
@@ -450,6 +471,7 @@ function renderChannelList() {
         return;
       }
       selectChannel(ch);
+      clearUnread(ch.id);
       // 移动端选频道后关闭侧边栏
       dom.sidebar.classList.remove('open');
       dom.sidebarOverlay.classList.remove('show');
@@ -556,6 +578,11 @@ function subscribeMessages(channelId) {
         state.messages.push(m);
         renderMessage(m, true);
         scrollToBottom();
+        // 如果不是自己发的消息，增加未读计数并播放提示音
+        if (m.user_id !== state.user.id) {
+          incrementUnread(channelId);
+          playNotificationSound();
+        }
       }
     )
     .on('postgres_changes',
@@ -1117,6 +1144,109 @@ function updateTypingIndicator() {
       dom.typingIndicator.textContent = `${names.length} 人正在输入…`;
     }
   }
+}
+
+/* ============================================================
+ *  搜索功能
+ * ============================================================ */
+function openSearch() {
+  dom.searchModal.classList.remove('hidden');
+  dom.searchInput.value = '';
+  dom.searchResults.innerHTML = '';
+  setTimeout(() => dom.searchInput.focus(), 100);
+}
+
+function closeSearch() {
+  dom.searchModal.classList.add('hidden');
+}
+
+function doSearch() {
+  const query = dom.searchInput.value.trim().toLowerCase();
+  dom.searchResults.innerHTML = '';
+  if (!query || !state.messages.length) {
+    dom.searchResults.innerHTML = '<div class="search-empty">输入关键词搜索消息</div>';
+    return;
+  }
+
+  const results = state.messages.filter(m =>
+    !m.is_deleted && m.content.toLowerCase().includes(query)
+  );
+
+  if (results.length === 0) {
+    dom.searchResults.innerHTML = '<div class="search-empty">未找到匹配的消息</div>';
+    return;
+  }
+
+  results.forEach(msg => {
+    const item = document.createElement('div');
+    item.className = 'search-result-item';
+    const name = msg.is_anon ? '匿名' : msg.username;
+    const time = formatTime(msg.created_at);
+    // 高亮匹配文本
+    const regex = new RegExp(`(${escapeRegExp(query)})`, 'gi');
+    const highlighted = escapeHtml(msg.content).replace(regex, '<span class="sr-highlight">$1</span>');
+    item.innerHTML = `
+      <div class="sr-meta">${escapeHtml(name)} · ${time}</div>
+      <div class="sr-text">${highlighted}</div>
+    `;
+    item.addEventListener('click', () => {
+      closeSearch();
+      const el = state.messageEls.get(msg.id);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.style.background = 'rgba(18,183,245,.15)';
+        setTimeout(() => { el.style.background = ''; }, 2000);
+      }
+    });
+    dom.searchResults.appendChild(item);
+  });
+}
+
+function escapeRegExp(string) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function debounce(fn, ms) {
+  let timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), ms);
+  };
+}
+
+/* ============================================================
+ *  未读消息计数
+ * ============================================================ */
+function incrementUnread(channelId) {
+  if (!channelId || channelId === state.currentChannel?.id) return;
+  unreadCounts[channelId] = (unreadCounts[channelId] || 0) + 1;
+  renderChannelList();
+}
+
+function clearUnread(channelId) {
+  delete unreadCounts[channelId];
+  renderChannelList();
+}
+
+/* ============================================================
+ *  提示音
+ * ============================================================ */
+let audioCtx = null;
+function playNotificationSound() {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.frequency.value = 880; // A5
+    osc.type = 'sine';
+    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+    osc.start(audioCtx.currentTime);
+    osc.stop(audioCtx.currentTime + 0.3);
+  } catch (e) { /* 忽略音频错误 */ }
 }
 
 /* ============================================================
