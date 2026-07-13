@@ -559,6 +559,28 @@ function subscribeMessages(channelId) {
       }
     )
     .on('postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'messages', filter: `channel_id=eq.${channelId}` },
+      (payload) => {
+        const m = payload.new;
+        const idx = state.messages.findIndex(x => x.id === m.id);
+        if (idx >= 0) {
+          state.messages[idx] = { ...state.messages[idx], ...m };
+          // 重新渲染该消息
+          const el = state.messageEls.get(m.id);
+          if (el) {
+            // 获取该消息之前的所有元素（日期分隔符等）保持不变
+            const next = el.nextSibling;
+            el.remove();
+            state.messageEls.delete(m.id);
+            // 临时重置 lastAuthor 以便正确渲染
+            const prevEl = next ? next.previousElementSibling : dom.messages.lastElementChild;
+            state.lastAuthor = prevEl?.classList.contains('msg-group') ? null : state.lastAuthor;
+            renderMessage(state.messages[idx], false);
+          }
+        }
+      }
+    )
+    .on('postgres_changes',
       { event: 'DELETE', schema: 'public', table: 'messages', filter: `channel_id=eq.${channelId}` },
       (payload) => {
         const id = payload.old.id;
@@ -629,6 +651,7 @@ function renderMessage(msg, animate) {
   const isAnon = msg.is_anon || state.currentChannel?.type === 'treehole';
   const displayName = isAnon ? '匿名' : msg.username;
   const displayColor = isAnon ? '#666' : msg.avatar_color;
+  const isDeleted = msg.is_deleted;
 
   // 日期分隔
   const dateStr = formatDateSeparator(msg.created_at);
@@ -638,7 +661,7 @@ function renderMessage(msg, animate) {
     sep.className = 'msg-system';
     sep.innerHTML = `<span>${dateStr}</span>`;
     dom.messages.appendChild(sep);
-    state.lastAuthor = null; // 日期分隔后重置作者
+    state.lastAuthor = null;
   }
 
   // 同作者连续消息合并
@@ -646,7 +669,7 @@ function renderMessage(msg, animate) {
 
   const group = document.createElement('div');
   const isMe = msg.user_id === state.user.id && !isAnon;
-  group.className = 'msg-group' + (sameAuthor ? ' same-author' : '') + (isMe ? ' me' : '');
+  group.className = 'msg-group' + (sameAuthor ? ' same-author' : '') + (isMe ? ' me' : '') + (isDeleted ? ' deleted' : '');
   group.dataset.id = msg.id;
 
   const avatar = document.createElement('div');
@@ -671,43 +694,80 @@ function renderMessage(msg, animate) {
     body.appendChild(meta);
   }
 
+  // 引用消息
+  if (msg.reply_to && !isDeleted) {
+    const quotedMsg = state.messages.find(m => m.id === msg.reply_to);
+    if (quotedMsg) {
+      const quoteDiv = document.createElement('div');
+      quoteDiv.className = 'msg-quote';
+      const qName = quotedMsg.is_anon ? '匿名' : quotedMsg.username;
+      quoteDiv.innerHTML = `
+        <div class="mq-name">${escapeHtml(qName)}</div>
+        <div class="mq-text">${escapeHtml(quotedMsg.content)}</div>
+      `;
+      body.appendChild(quoteDiv);
+    }
+  }
+
   const content = document.createElement('div');
   content.className = 'msg-content';
-  content.innerHTML = escapeHtml(msg.content);
+  if (isDeleted) {
+    content.innerHTML = '<em style="color:#999;font-size:13px;">消息已撤回</em>';
+  } else {
+    content.innerHTML = highlightMentions(escapeHtml(msg.content));
+  }
   body.appendChild(content);
 
-  // 反应区
-  const reactDiv = document.createElement('div');
-  reactDiv.className = 'msg-reactions';
-  reactDiv.dataset.msgId = msg.id;
-  body.appendChild(reactDiv);
+  // 反应区（已撤回消息不显示）
+  if (!isDeleted) {
+    const reactDiv = document.createElement('div');
+    reactDiv.className = 'msg-reactions';
+    reactDiv.dataset.msgId = msg.id;
+    body.appendChild(reactDiv);
+  }
 
-  // 操作按钮（添加反应 / 删除）
-  const actions = document.createElement('div');
-  actions.className = 'msg-actions';
-  const reactBtn = document.createElement('button');
-  reactBtn.className = 'msg-action-btn';
-  reactBtn.textContent = '😊';
-  reactBtn.title = '添加反应';
-  reactBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    showReactionPicker(e.target, msg.id);
-  });
-  actions.appendChild(reactBtn);
+  // 操作按钮
+  if (!isDeleted) {
+    const actions = document.createElement('div');
+    actions.className = 'msg-actions';
 
-  // 自己的消息可以删除
-  if (msg.user_id === state.user.id) {
-    const delBtn = document.createElement('button');
-    delBtn.className = 'msg-action-btn';
-    delBtn.textContent = '🗑';
-    delBtn.title = '删除';
-    delBtn.addEventListener('click', () => deleteMessage(msg.id));
-    actions.appendChild(delBtn);
+    // 引用
+    const quoteBtn = document.createElement('button');
+    quoteBtn.className = 'msg-action-btn';
+    quoteBtn.textContent = '↩️';
+    quoteBtn.title = '引用回复';
+    quoteBtn.addEventListener('click', () => startQuoteReply(msg));
+    actions.appendChild(quoteBtn);
+
+    // 添加反应
+    const reactBtn = document.createElement('button');
+    reactBtn.className = 'msg-action-btn';
+    reactBtn.textContent = '😊';
+    reactBtn.title = '添加反应';
+    reactBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      showReactionPicker(e.target, msg.id);
+    });
+    actions.appendChild(reactBtn);
+
+    // 自己的消息可撤回（2分钟内）
+    if (msg.user_id === state.user.id) {
+      const age = Date.now() - new Date(msg.created_at).getTime();
+      if (age < 2 * 60 * 1000) {
+        const revokeBtn = document.createElement('button');
+        revokeBtn.className = 'msg-action-btn';
+        revokeBtn.textContent = '↩';
+        revokeBtn.title = '撤回';
+        revokeBtn.addEventListener('click', () => revokeMessage(msg.id));
+        actions.appendChild(revokeBtn);
+      }
+    }
+
+    group.appendChild(actions);
   }
 
   group.appendChild(avatar);
   group.appendChild(body);
-  group.appendChild(actions);
 
   if (animate) {
     group.style.opacity = '0';
@@ -723,7 +783,7 @@ function renderMessage(msg, animate) {
   state.messageEls.set(msg.id, group);
   state.lastAuthor = msg.user_id;
 
-  renderReactions(msg);
+  if (!isDeleted) renderReactions(msg);
 }
 
 /* ============================================================
@@ -747,6 +807,65 @@ function renderReactions(msg) {
 }
 
 /* ============================================================
+ *  @提及高亮
+ * ============================================================ */
+function highlightMentions(html) {
+  // 匹配 @用户名（支持中文、英文、数字、下划线）
+  return html.replace(/@([\u4e00-\u9fa5a-zA-Z0-9_]+)/g, '<span class="mention">@$1</span>');
+}
+
+/* ============================================================
+ *  引用回复
+ * ============================================================ */
+let quotingMessage = null;
+
+function startQuoteReply(msg) {
+  quotingMessage = msg;
+  showQuotePreview(msg);
+  dom.messageInput.focus();
+}
+
+function showQuotePreview(msg) {
+  let preview = document.getElementById('quotePreview');
+  if (!preview) {
+    preview = document.createElement('div');
+    preview.id = 'quotePreview';
+    preview.className = 'quote-preview';
+    dom.composer.insertBefore(preview, dom.composer.firstChild);
+  }
+  const name = msg.is_anon ? '匿名' : msg.username;
+  preview.innerHTML = `
+    <div class="qp-inner">
+      <span class="qp-label">引用 ${escapeHtml(name)}</span>
+      <span class="qp-text">${escapeHtml(msg.content)}</span>
+      <button class="qp-close" title="取消引用">✕</button>
+    </div>
+  `;
+  preview.querySelector('.qp-close').addEventListener('click', clearQuotePreview);
+  preview.classList.remove('hidden');
+}
+
+function clearQuotePreview() {
+  quotingMessage = null;
+  const preview = document.getElementById('quotePreview');
+  if (preview) preview.classList.add('hidden');
+}
+
+/* ============================================================
+ *  消息撤回
+ * ============================================================ */
+async function revokeMessage(messageId) {
+  if (!confirm('确定撤回这条消息吗？')) return;
+  const { error } = await state.supabase
+    .from('messages')
+    .update({ is_deleted: true, content: '消息已撤回' })
+    .eq('id', messageId);
+  if (error) {
+    alert('撤回失败: ' + error.message);
+  }
+}
+
+/* ============================================================
  *  发送消息
  * ============================================================ */
 async function sendMessage() {
@@ -755,15 +874,23 @@ async function sendMessage() {
 
   const isAnon = state.currentChannel.type === 'treehole';
 
-  dom.sendBtn.disabled = true;
-  const { error } = await state.supabase.from('messages').insert({
+  const payload = {
     channel_id: state.currentChannel.id,
     user_id:    state.user.id,
     username:   state.user.name,
     avatar_color: state.user.color,
     content:    text,
     is_anon:    isAnon,
-  });
+  };
+
+  // 如果有引用回复
+  if (quotingMessage) {
+    payload.reply_to = quotingMessage.id;
+    clearQuotePreview();
+  }
+
+  dom.sendBtn.disabled = true;
+  const { error } = await state.supabase.from('messages').insert(payload);
 
   dom.sendBtn.disabled = false;
   if (error) {

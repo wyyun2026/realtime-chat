@@ -394,6 +394,25 @@ html, body {
 
 .msg-content .mention { color: var(--primary); background: var(--primary-light); padding:0 2px; border-radius:2px; }
 
+/* 引用消息 */
+.msg-quote {
+  background: rgba(0,0,0,.04);
+  border-left: 3px solid var(--primary);
+  padding: 6px 10px;
+  margin-bottom: 6px;
+  border-radius: 0 4px 4px 0;
+  font-size: 13px;
+  max-width: 100%;
+}
+.msg-group.me .msg-quote { border-left-color: var(--bubble-me); }
+.mq-name { color: var(--text-dim); font-weight: 600; margin-bottom: 2px; }
+.mq-text { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* 已撤回消息 */
+.msg-group.deleted { opacity: .7; }
+.msg-group.deleted .msg-content { background: transparent !important; box-shadow: none !important; }
+.msg-group.deleted .msg-content::before { display: none; }
+
 .msg-reactions { margin-top:6px; display:flex; flex-wrap:wrap; gap:4px; }
 .msg-group.me .msg-reactions { justify-content: flex-end; }
 .reaction-chip {
@@ -481,6 +500,29 @@ html, body {
 .send-btn:hover { background: var(--primary-dark); }
 .send-btn:disabled { opacity:.4; cursor:not-allowed; }
 .composer-hint { font-size:12px; color:var(--text-dim); margin-top:6px; padding-left:4px; }
+
+/* 引用预览 */
+.quote-preview {
+  padding: 0 20px 8px;
+  animation: fadeInUp .2s ease;
+}
+.quote-preview.hidden { display: none !important; }
+.qp-inner {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--primary-light);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  font-size: 13px;
+}
+.qp-label { color: var(--primary); font-weight: 600; flex-shrink: 0; }
+.qp-text { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.qp-close {
+  background: none; border: none; cursor: pointer;
+  color: var(--text-dim); font-size: 14px; padding: 2px 6px;
+  border-radius: 4px; flex-shrink: 0;
+}
+.qp-close:hover { background: rgba(0,0,0,.06); color: var(--text); }
 
 /* ===================== 表情面板 ===================== */
 .emoji-panel {
